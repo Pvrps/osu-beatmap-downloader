@@ -1,0 +1,27 @@
+[project]
+name = "osu-downloader"
+version = "0.1.0"
+description = "Parse osu! .db files and download beatmaps from the catboy.best mirror"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "httpx>=0.27",
+    "rich>=13.7",
+    "click>=8.1",
+]
+
+[project.scripts]
+osu-downloader = "osu_downloader.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/osu_downloader"]
+
+[tool.ruff]
+line-length = 90
+
+[tool.ruff.lint]
+extend-select = ["I", "UP"]

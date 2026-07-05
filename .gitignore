@@ -1,0 +1,29 @@
+# Devenv
+.devenv
+devenv.lock
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+.ruff_cache/
+
+# VPN credentials and config (SENSITIVE)
+vpn/.env
+vpn/*.ovpn
+
+# Databases (large, user-specific)
+databases/
+
+# Build
+build/
+dist/
+*.egg-info/
+
+# IDE
+.vscode/settings.json
+
+# OS
+.DS_Store
+Thumbs.db
