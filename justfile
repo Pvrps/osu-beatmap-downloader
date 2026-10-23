@@ -2,6 +2,7 @@
 # Usage:
 #   just download <database> <output-dir>
 #   just download databases/database1.db ~/Downloads/songs
+#   just download-vpn databases/database1.db ~/Downloads/songs
 
 default:
     @just --list
@@ -31,9 +32,17 @@ install:
 parse database:
     devenv shell -- uv run osu-downloader parse {{database}}
 
-# Download all beatmaps from a db file through the Windscribe VPN.
-# Args: database path, output directory
+# Download all beatmaps from a db file into an output directory
 download database output:
+    devenv shell -- uv run osu-downloader \
+        download-db \
+        {{database}} \
+        -o {{output}} \
+        -w 4 \
+        --rate 600
+
+# Same as `download`, but through the Windscribe VPN (Linux only, needs sudo + vpn/ files)
+download-vpn database output:
     devenv shell -- uv run osu-downloader \
         --ovpn vpn/Windscribe-Copenhagen-LEGO.ovpn \
         --vpn-creds vpn/.env \

@@ -12,7 +12,7 @@ folder on a new install.
 - **Downloads a single collection** or a single beatmapset by ID.
 - **Stays under the mirror's rate limit.** Going over it gets your IP banned
   (see [Rate limiting & bans](#rate-limiting--bans)).
-- **Can route the downloads through a VPN.** Only the downloader's own traffic
+- **Can route the downloads through a VPN** (Linux only). Only the downloader's own traffic
   goes through the tunnel (via an isolated network namespace); the rest of your
   system is untouched.
 
@@ -20,22 +20,32 @@ Sample databases are included in `databases/`.
 
 ## Requirements
 
-- Linux
-- [devenv](https://devenv.sh) and [just](https://just.systems), which provide
-  Python 3.11, [uv](https://docs.astral.sh/uv/), OpenVPN, iproute2 and iptables
-- Optional, for VPN mode: `sudo`, an OpenVPN `.ovpn` config, and a credentials
-  file (see below)
+- Python 3.11+ and [uv](https://docs.astral.sh/uv/), on any OS
+- Optional: [devenv](https://devenv.sh) and [just](https://just.systems) (Linux
+  or macOS), which provide Python, uv, OpenVPN, iproute2 and iptables for you
+- Optional, for [VPN mode](#vpn-mode): Linux, `sudo`, an OpenVPN `.ovpn` config,
+  and a credentials file
 
 ## Usage
 
+With devenv and just:
+
 ```sh
-just install                                  # set up the environment and dependencies
-just parse databases/database1.db             # inspect a db (version, player, counts, samples)
-just download databases/database1.db ./Songs  # download everything, through the VPN
+just install                                      # set up the environment and dependencies
+just parse databases/database1.db                 # inspect a db (version, player, counts, samples)
+just download databases/database1.db ./Songs      # download everything
+just download-vpn databases/database1.db ./Songs  # same, through the VPN (Linux only)
 ```
 
-`just download` expects the VPN files described below. To skip the VPN, call
-the CLI directly:
+Without devenv (e.g. on Windows), install with `uv sync` and run the CLI
+through uv:
+
+```sh
+uv sync
+uv run osu-downloader download-db databases/database1.db -o ./Songs
+```
+
+More commands (prefix with `uv run` if you aren't in the devenv shell):
 
 ```sh
 # Download every beatmapset referenced by an osu!.db
@@ -67,13 +77,14 @@ Options for `download-*`:
 
 ### VPN mode
 
-Pass `--ovpn <config.ovpn> --vpn-creds <file>` before the subcommand. The tool
-re-runs itself under `vpn-run.sh` with `sudo`, which sets up the tunnel in its
-own network namespace and then drops back to your user for the download.
+Linux only. Pass `--ovpn <config.ovpn> --vpn-creds <file>` before the
+subcommand. The tool re-runs itself under `vpn-run.sh` with `sudo`, which sets
+up the tunnel in its own network namespace (using `ip`, `iptables` and a tun
+device) and then drops back to your user for the download.
 
 The credentials file is either `username=...` / `password=...` lines or plain
-`user` / `pass` on two lines. `just download` looks for them in `vpn/`, which is
-gitignored so credentials never get committed:
+`user` / `pass` on two lines. `just download-vpn` looks for these files in
+`vpn/`, which is gitignored so credentials never get committed:
 
 ```
 vpn/.env
