@@ -1,1 +1,9 @@
-imports: [path:/persist/etc/nixos/modules/devenv/python]
+inputs:
+  nixpkgs:
+    url: github:cachix/devenv-nixpkgs/rolling
+  pvrps-nixos:
+    url: github:Pvrps/nixos
+    flake: false
+imports:
+  - pvrps-nixos/modules/devenv/python
+allowUnfree: true
