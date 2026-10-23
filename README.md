@@ -1,35 +1,56 @@
-# osu-downloader
+# osu-beatmap-downloader
 
-Parses osu! database files (`osu!.db` and `collection.db`) and downloads the
-referenced beatmaps from the [catboy.best](https://catboy.best) mirror.
+Reads your osu! database files and downloads every beatmap they reference from
+the [catboy.best](https://catboy.best) mirror. Handy for rebuilding a Songs
+folder on a new install.
 
-## Setup
+## What it does
 
-```sh
-nix-shell shell.nix        # provides uv + python3.11
-uv sync                    # create venv + install deps
-```
+- **Parses `osu!.db` and `collection.db`** to get your beatmaps and collections.
+- **Downloads beatmapsets in parallel**, deduplicated by set ID, skipping files
+  you already have so interrupted runs can resume.
+- **Downloads a single collection** or a single beatmapset by ID.
+- **Stays under the mirror's rate limit.** Going over it gets your IP banned
+  (see [Rate limiting & bans](#rate-limiting--bans)).
+- **Can route the downloads through a VPN.** Only the downloader's own traffic
+  goes through the tunnel (via an isolated network namespace); the rest of your
+  system is untouched.
+
+Sample databases are included in `databases/`.
+
+## Requirements
+
+- Linux
+- [devenv](https://devenv.sh) and [just](https://just.systems), which provide
+  Python 3.11, [uv](https://docs.astral.sh/uv/), OpenVPN, iproute2 and iptables
+- Optional, for VPN mode: `sudo`, an OpenVPN `.ovpn` config, and a credentials
+  file (see below)
 
 ## Usage
 
 ```sh
-# Inspect a db file (version, player, beatmap/set counts, sample entries)
-osu-downloader parse ~/Downloads/database1.db
+just install                                  # set up the environment and dependencies
+just parse databases/database1.db             # inspect a db (version, player, counts, samples)
+just download databases/database1.db ./Songs  # download everything, through the VPN
+```
 
-# List collections from a collection.db
-osu-downloader collections ~/Downloads/collection.db
+`just download` expects the VPN files described below. To skip the VPN, call
+the CLI directly:
 
-# Download every beatmapset referenced by an osu!.db (deduped by set id)
-osu-downloader download-db ~/Downloads/database1.db -o ./Songs
+```sh
+# Download every beatmapset referenced by an osu!.db
+osu-downloader download-db databases/database1.db -o ./Songs
 
-# Download a specific collection by name (needs both an osu!.db for hash->set
-# resolution and a collection.db for the hash list)
+# List collections in a collection.db
+osu-downloader collections collection.db
+
+# Download one collection (needs the osu!.db to map hashes to sets)
 osu-downloader download-collection \
-    --db ~/Downloads/database1.db \
-    --collections ~/Downloads/collection.db \
+    --db databases/database1.db \
+    --collections collection.db \
     --name "My Collection" -o ./Songs
 
-# Download a single beatmapset by id
+# Download a single beatmapset by ID
 osu-downloader download-set 12345 -o ./Songs
 ```
 
@@ -44,6 +65,21 @@ Options for `download-*`:
 - `--dry-run`          resolve targets without downloading
 - `--skip-existing`    skip files already present in output dir (default on)
 
+### VPN mode
+
+Pass `--ovpn <config.ovpn> --vpn-creds <file>` before the subcommand. The tool
+re-runs itself under `vpn-run.sh` with `sudo`, which sets up the tunnel in its
+own network namespace and then drops back to your user for the download.
+
+The credentials file is either `username=...` / `password=...` lines or plain
+`user` / `pass` on two lines. `just download` looks for them in `vpn/`, which is
+gitignored so credentials never get committed:
+
+```
+vpn/.env
+vpn/Windscribe-Copenhagen-LEGO.ovpn
+```
+
 ## Rate limiting & bans
 
 The mirror advertises `X-Ratelimit-Limit: 1200` per ~51s window. **Exceeding
@@ -53,6 +89,6 @@ count (no large startup burst) and a conservative default rate of 800/window.
 If a ban is detected mid-run, the run aborts immediately with a clear message
 rather than hammering the mirror.
 
-If you get banned: wait for it to lift (or change IP), then re-run —
-`--skip-existing` resumes from where you stopped. To appeal:
+If you get banned: wait for it to lift (or change IP, e.g. with VPN mode), then
+re-run. `--skip-existing` resumes from where you stopped. To appeal:
 https://catboy.best/discord
