@@ -13,9 +13,6 @@ __pycache__/
 vpn/
 *.ovpn
 
-# Databases (large, user-specific)
-databases/
-
 # Build
 build/
 dist/
